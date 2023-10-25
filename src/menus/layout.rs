@@ -1173,7 +1173,7 @@ pub fn build_in_game_menu(
                 },
                 ..Default::default()
             }).insert(GameTimer {
-                remaining_time: 1.0 * 60.0,
+                remaining_time: 5.0 * 60.0,
             });
         })
         .id();
