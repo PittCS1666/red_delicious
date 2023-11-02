@@ -1,9 +1,11 @@
-use std::ops::Sub;
+use std::ops::{Div, Sub};
 use bevy::prelude::*;
 use crate::player::*;
-use bevy::sprite::collide_aabb::collide;
+use bevy::sprite::collide_aabb::{collide, Collision};
 use crate::map;
 use crate::components::*;
+use crate::game::map::Biome::Wall;
+use crate::game::map::{get_pos_in_tile, get_tile_at_pos, get_tile_midpoint_position, TILESIZE};
 use crate::map::{Biome, get_surrounding_tiles};
 
 #[derive(Resource)]
@@ -51,7 +53,7 @@ pub const MOVE_VECTORS: [Vec2; 16] = [
 /// Player movement function. Runs on Update schedule.
 pub fn move_player(
     keyboard_input: Res<Input<KeyCode>>,
-    mut players: Query<(&Player, &mut Transform, &Collider), With<LocalPlayer>>,
+    mut players: Query<(&Player, &mut Transform, &Collider, &StoredPowerUps), With<LocalPlayer>>,
     other_colliders: Query<(&Transform, &Collider), Without<LocalPlayer>>,
     map: Res<map::WorldMap>,
     time: Res<Time>,
@@ -70,8 +72,8 @@ pub fn move_player(
     let collider = player.2;
 
     let mut new_pos = Vec3 {
-        x: pos.translation.x + dir.x * PLAYER_SPEED * time.delta_seconds(),
-        y: pos.translation.y + dir.y * PLAYER_SPEED * time.delta_seconds(),
+        x: pos.translation.x + dir.x * (PLAYER_SPEED + player.3.power_ups[PowerUpType::MovementSpeedUp as usize] as f32 * MOVEMENT_SPEED_UP as f32) * time.delta_seconds(),
+        y: pos.translation.y + dir.y * (PLAYER_SPEED + player.3.power_ups[PowerUpType::MovementSpeedUp as usize] as f32 * MOVEMENT_SPEED_UP as f32) * time.delta_seconds(),
         z: 0.0,
     };
 
@@ -90,16 +92,94 @@ pub fn move_player(
         }
     }
 
-    // check collision against map tiles
-    // TODO: Need to do some math to figure out where the entity is relative to the tile
-    // TODO: This crashes if you try to move outside of the map
-    let nearby = get_surrounding_tiles(&new_pos, &map.biome_map);
-    if nearby[1][1] == Biome::Wall {
-        can_move = false;
-    }
-
     if can_move {
         pos.translation.x = new_pos.x;
         pos.translation.y = new_pos.y;
     }
+
+    // Check that we aren't colliding with a wall and move out if we are
+    // repeat in case we put ourselves in a wall the first time
+    for i in 0..5 {
+        let mut done = true;
+        let half_collider = Vec2::new(collider.0.x / 2.0, collider.0.y / 2.0);
+        let player_north = pos.translation + Vec3::new(0.0, half_collider.y, 0.0);
+        let player_south = pos.translation - Vec3::new(0.0, half_collider.y, 0.0);
+        let player_east = pos.translation + Vec3::new(half_collider.x, 0.0, 0.0);
+        let player_west = pos.translation - Vec3::new(half_collider.x, 0.0, 0.0);
+
+        let offset: f32 = 0.1;
+        if get_tile_at_pos(&player_north, &map.biome_map) == Wall {
+            let tilepos = get_pos_in_tile(&player_north);
+            let adjustment = tilepos.y + offset;
+            pos.translation.y -= adjustment;
+            done = false;
+        }
+        if get_tile_at_pos(&player_south, &map.biome_map) == Wall {
+            let tilepos = get_pos_in_tile(&player_north);
+            let adjustment = TILESIZE as f32 - tilepos.y + offset;
+            pos.translation.y += adjustment;
+            done = false;
+        }
+        if get_tile_at_pos(&player_east, &map.biome_map) == Wall {
+            let tilepos = get_pos_in_tile(&player_north);
+            let adjustment = tilepos.x + offset;
+            pos.translation.x -= adjustment;
+            done = false;
+        }
+        if get_tile_at_pos(&player_west, &map.biome_map) == Wall {
+            let tilepos = get_pos_in_tile(&player_north);
+            let adjustment = TILESIZE as f32 - tilepos.x + offset;
+            pos.translation.x += adjustment;
+            done = false;
+        }
+        if done {
+            break;
+        }
+    }
+    /*
+    // try another method
+    let tiles = get_surrounding_tiles(&pos.translation, &map.biome_map);
+    let middle_tile_midpoint = get_tile_midpoint_position(&pos.translation, &map.biome_map);
+    let wall_collider_size = Vec2::new(TILESIZE as f32 / 2.0, TILESIZE as f32 / 2.0);
+    let mut tile_colliders = Vec::new();
+    for i in 0..3 {
+        for j in 0..3 {
+            let tile_offset_from_center = Vec3::new((i as isize - 1 * TILESIZE as isize) as f32, -(j as isize - 1 * TILESIZE as isize) as f32, 0.0);
+            if tiles[i][j] == Biome::Wall {
+                let wall_pos = middle_tile_midpoint + tile_offset_from_center;
+                //println!("Next to a wall player at x: {:2} y: {:2} wall at x: {:2} y: {:2}", &pos.translation.x, &pos.translation.y, wall_pos.x, wall_pos.y);
+                tile_colliders.push(wall_pos);
+            }
+        }
+    }
+    for wall in tile_colliders {
+        if let Some(collision) = collide(
+            wall,
+            wall_collider_size,
+            pos.translation,
+            collider.0,
+        ) {
+            match collision {
+                Collision::Left => {
+                    println!("left");
+                    let x_dist = (wall.x - &pos.translation.x).abs();
+                    let required_distance = TILESIZE as f32 / 2.0 + collider.0.x;
+                    //pos.translation.x -= required_distance - x_dist;
+                }
+                Collision::Right => {
+                    println!("right");
+                }
+                Collision::Top => {
+                    println!("top");
+                }
+                Collision::Bottom => {
+                    println!("bottom");
+                }
+                Collision::Inside => {
+                    println!("inside");
+                }
+            }
+        }
+    }
+     */
 }
