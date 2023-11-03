@@ -51,3 +51,33 @@ pub struct Enemy(pub u8);  // holds id
 
 #[derive(Component)]
 pub struct Player(pub u8);  // holds id
+
+#[derive(Component)]
+pub struct Camp(pub u8);
+//id
+
+#[derive(Component)]
+pub struct Grade{
+    pub grade: u8,
+}
+
+#[derive(Component)]
+pub struct CampEnemies{
+    pub current_enemies: u8,
+}
+
+#[derive(Component)]
+pub struct CampStatus{
+    pub status: bool,
+}
+//stats of camp : true = filled, false = clear
+
+// {
+//     pub id: u8,
+//     pub grade: u8,
+//     pub pos: Vec2,
+//     pub enemy_type: u8,
+//     pub max_enemies: u8,
+//     pub current_enemies:u8,
+//     pub status: bool,
+//}

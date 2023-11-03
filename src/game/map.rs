@@ -2,11 +2,11 @@ use bevy::{prelude::*, utils::HashMap};
 use std::{
     error::Error, 
     fs::File, 
-    // thread::spawn
+    thread::spawn
 };
 use csv::ReaderBuilder;
 use rand::Rng;
-//use crate::noise::Perlin;
+use crate::noise::Perlin;
 
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub enum Biome{
@@ -64,77 +64,77 @@ impl Plugin for MapPlugin {
 }
 
 // Perlin Noise Generated Map (for post midterm)
-// fn read_map(map: &mut WorldMap) -> Result<(), Box<dyn Error>> {
-//     // new perlin noise generator with random u64 as seed
-//     let mut rng = rand::thread_rng();
-//     let random_u64: u64 = rng.gen();
-//     // seed, amplitude, frequency, octaves
-//     let perlin = Perlin::new(random_u64, 1.0, 0.08, 3);
-
-//     for row in 0..MAPSIZE {
-//         for col in 0..MAPSIZE {
-//             let v = perlin.noise(row,col);
-//             /*let r = (255 as f64 * v);
-//             let y: u32 = r as u32;
-//             let t = y % 85 as u32;
-//             let x = y - t;*/
-
-//             if v < 0.4 {
-//                 map.biome_map[row][col] = Biome::Free;
-//             }
-//             if v < 0.7 {
-//                 map.biome_map[row][col] = Biome::Ground;
-//             }
-//             else {
-//                 map.biome_map[row][col] = Biome::Camp;
-//             }
-//             if row % (MAPSIZE-1) == 0 {
-//                 map.biome_map[row][col] = Biome::Wall;
-//             }
-//             if col % (MAPSIZE-1) == 0 {
-//                 map.biome_map[row][col] = Biome::Wall;
-//             }
-//         }
-//     }
-//     Ok(())
-// }
-
-// CSV Read Map (for midterm)
 fn read_map(map: &mut WorldMap) -> Result<(), Box<dyn Error>> {
-    let path = "assets/midterm_map.csv";
-    let file = File::open(path)?;
-    //let mut reader = csv::Reader::from_reader(file);
-    let mut reader = ReaderBuilder::new()
-        .has_headers(false)
-        .from_reader(file);
+    // new perlin noise generator with random u64 as seed
+    let mut rng = rand::thread_rng();
+    let random_u64: u64 = rng.gen();
+    // seed, amplitude, frequency, octaves
+    let perlin = Perlin::new(random_u64, 1.0, 0.08, 3);
 
-    let mut row = 0;
-    let mut col = 0;
+    for row in 0..MAPSIZE {
+        for col in 0..MAPSIZE {
+            let v = perlin.noise(row,col);
+            /*let r = (255 as f64 * v);
+            let y: u32 = r as u32;
+            let t = y % 85 as u32;
+            let x = y - t;*/
 
-    for result in reader.records() {
-        let record = result?;
-        for field in record.iter() {
-            match field {
-                "w" => {
-                    map.biome_map[row][col] = Biome::Wall;
-                }
-                "g" => {
-                    map.biome_map[row][col] = Biome::Ground;
-                }
-                "c" => {
-                    map.biome_map[row][col] = Biome::Camp;
-                }
-                &_ => {
-
-                }
-            };
-            col += 1;
+            if v < 0.4 {
+                map.biome_map[row][col] = Biome::Free;
+            }
+            if v < 0.7 {
+                map.biome_map[row][col] = Biome::Ground;
+            }
+            else {
+                map.biome_map[row][col] = Biome::Camp;
+            }
+            if row % (MAPSIZE-1) == 0 {
+                map.biome_map[row][col] = Biome::Wall;
+            }
+            if col % (MAPSIZE-1) == 0 {
+                map.biome_map[row][col] = Biome::Wall;
+            }
         }
-        row += 1;
-        col = 0;
     }
     Ok(())
 }
+
+// CSV Read Map (for midterm)
+// fn read_map(map: &mut WorldMap) -> Result<(), Box<dyn Error>> {
+//     let path = "assets/midterm_map.csv";
+//     let file = File::open(path)?;
+//     //let mut reader = csv::Reader::from_reader(file);
+//     let mut reader = ReaderBuilder::new()
+//         .has_headers(false)
+//         .from_reader(file);
+
+//     let mut row = 0;
+//     let mut col = 0;
+
+//     for result in reader.records() {
+//         let record = result?;
+//         for field in record.iter() {
+//             match field {
+//                 "w" => {
+//                     map.biome_map[row][col] = Biome::Wall;
+//                 }
+//                 "g" => {
+//                     map.biome_map[row][col] = Biome::Ground;
+//                 }
+//                 "c" => {
+//                     map.biome_map[row][col] = Biome::Camp;
+//                 }
+//                 &_ => {
+
+//                 }
+//             };
+//             col += 1;
+//         }
+//         row += 1;
+//         col = 0;
+//     }
+//     Ok(())
+// }
 
 pub fn setup(
     mut commands: Commands, 
@@ -156,7 +156,7 @@ pub fn setup(
             let (fname, cols, rows) = match s {
                 SheetTypes::Camp => ("camptilesheet.png", 50, 1),
                 SheetTypes::Ground => ("groundtilesheet.png", 50, 1),
-                SheetTypes::Wall => ("wall.png", 2, 2),
+                SheetTypes::Wall => ("wall.png", 1, 1),
             };
             let handle = asset_server.load(fname);
             let atlas = 

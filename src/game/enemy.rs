@@ -90,6 +90,7 @@ pub fn spawn_enemy(
         SpriteSheetBundle {
             texture_atlas: entity_atlas.handle.clone(),
             sprite: TextureAtlasSprite { index: entity_atlas.coord_to_index(0, sprite), ..default()},
+            //TODO: change this to translate based on parent xyz
             transform: Transform::from_xyz(0., 0., 2.),
             ..default()
         },
