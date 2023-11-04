@@ -1,4 +1,5 @@
-use bevy::prelude::*;
+use bevy::ecs::query;
+use bevy::prelude::{*, IntoSystemConfigs};
 use crate::AppState;
 use crate::game::enemy;
 use crate::Atlas;
@@ -25,23 +26,32 @@ pub fn setup(
 ) {
 
     //spawn a camp at a specified position
+    //placeholder variables for initialization
+    let CAMP_GRADE: u8 = 1;
+    let CAMP_ENEMIES: u8 = 5;
+    let pos: Vec2 = get_spawn_vec(138., 109.);
 
     //get spawn vec can later be replaced with some noise thing to randomly generate where its placed
-    let pb = PosBuffer(CircularBuffer::new_from(get_spawn_vec(138., 109.)));
+    let pb = PosBuffer(CircularBuffer::new_from(pos));
     let new_camp = commands.spawn((
         Camp(1),
         pb,
         Grade{
-            grade: 1,
+            grade: CAMP_GRADE,
         },
         CampEnemies{
-            current_enemies: 5,
+            current_enemies: CAMP_ENEMIES,
         },
         CampStatus{
             status: true,
         },
     )).id();
 
+    enemy::spawn_enemy(&mut commands, &entity_atlas, 0, Vec2::new(pos.x - 10., pos.y - 10.), 2, PowerUpType::DamageDealtUp);
+    enemy::spawn_enemy(&mut commands, &entity_atlas, 0, Vec2::new(pos.x - 7., pos.y), 2, PowerUpType::DamageReductionUp);
+    enemy::spawn_enemy(&mut commands, &entity_atlas, 0, Vec2::new(pos.x - 2., pos.y + 10.), 2, PowerUpType::AttackSpeedUp);
+    enemy::spawn_enemy(&mut commands, &entity_atlas, 0, Vec2::new(pos.x + 4. , pos.y + 2.), 2, PowerUpType::MovementSpeedUp);
+    enemy::spawn_enemy(&mut commands, &entity_atlas, 0, Vec2::new(pos.x + 10., pos.y + 10.), 2, PowerUpType::MaxHPUp);
 
     // enemy::spawn_enemy(&mut commands, &entity_atlas, 1, get_spawn_vec(31., 81.), 2, PowerUpType::DamageDealtUp);
     // enemy::spawn_enemy(&mut commands, &entity_atlas, 1, get_spawn_vec(45., 83.), 2, PowerUpType::DamageDealtUp);
@@ -85,7 +95,6 @@ pub fn setup(
     // enemy::spawn_enemy(&mut commands, &entity_atlas, 1, get_spawn_vec(39., 211.), 5, PowerUpType::MovementSpeedUp);
     // enemy::spawn_enemy(&mut commands, &entity_atlas, 1, get_spawn_vec(25., 229.), 5, PowerUpType::MovementSpeedUp);
     // enemy::spawn_enemy(&mut commands, &entity_atlas, 1, get_spawn_vec(11., 207.), 5, PowerUpType::MovementSpeedUp);
-
 
 }
 

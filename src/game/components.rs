@@ -62,6 +62,11 @@ pub struct Grade{
 }
 
 #[derive(Component)]
+pub struct CampEnemyType{
+    pub camp_enemy_type: u8,
+}
+
+#[derive(Component)]
 pub struct CampEnemies{
     pub current_enemies: u8,
 }
