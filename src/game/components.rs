@@ -73,16 +73,11 @@ pub struct CampEnemies{
 
 #[derive(Component)]
 pub struct CampStatus{
+    //status of camp : true = filled, false = clear
     pub status: bool,
 }
-//stats of camp : true = filled, false = clear
 
-// {
-//     pub id: u8,
-//     pub grade: u8,
-//     pub pos: Vec2,
-//     pub enemy_type: u8,
-//     pub max_enemies: u8,
-//     pub current_enemies:u8,
-//     pub status: bool,
-//}
+#[derive(Component)]
+pub struct EnemyCamp(pub u8);
+
+

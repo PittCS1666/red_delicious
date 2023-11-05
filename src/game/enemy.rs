@@ -74,7 +74,11 @@ impl Plugin for EnemyPlugin{
 pub fn spawn_enemy(
     commands: &mut Commands, 
     entity_atlas: &Res<Atlas>, 
-    id: u8, pos: Vec2, sprite: i32, power_up_type: PowerUpType
+    id: u8, 
+    campid: u8, 
+    pos: Vec2, 
+    sprite: i32, 
+    power_up_type: PowerUpType
 ) {
     let pb = PosBuffer(CircularBuffer::new_from(pos));
     let mut pu: [u8; NUM_POWERUPS]; 
@@ -87,6 +91,7 @@ pub fn spawn_enemy(
             current: ENEMY_MAX_HP,
             max: ENEMY_MAX_HP,
         },
+        EnemyCamp(campid),
         SpriteSheetBundle {
             texture_atlas: entity_atlas.handle.clone(),
             sprite: TextureAtlasSprite { index: entity_atlas.coord_to_index(0, sprite), ..default()},
@@ -168,12 +173,13 @@ fn despawn_after_timer(
 // incrementing the score of the player who killed them
 pub fn handle_dead_enemy(
     mut commands: Commands,
-    enemy_query: Query<(Entity, &Health, &LastAttacker, &StoredPowerUps, &GlobalTransform), With<Enemy>>,
+    enemy_query: Query<(Entity, &Health, &LastAttacker, &StoredPowerUps, &GlobalTransform, &EnemyCamp), With<Enemy>>,
     mut player_score_query: Query<(&mut Score, &Player)>,
     asset_server: Res<AssetServer>,
+    mut camp_query: Query<(&Camp, &mut CampEnemies), With<Camp>>,
 ) {
     // TODO this is slow because it checks all enemies, but I'm not sure how to make it faster
-    for (entity, health, last_attacker, stored_power_ups, position) in enemy_query.iter() {
+    for (entity, health, last_attacker, stored_power_ups, position, enemy_camp_num) in enemy_query.iter() {
         if health.current <= 0 {
             // drop powerups by cycling through the stored powerups of the enemy
             // and spawning the appropriate one
@@ -192,6 +198,23 @@ pub fn handle_dead_enemy(
                     ));
                 }
             }
+            // decrement the enemy counter of the camp that this enemy is apart of
+            for (camp_num, mut enemies_in_camp) in camp_query.iter_mut() {
+                if camp_num.0 == enemy_camp_num.0 {
+                    enemies_in_camp.current_enemies -= 1;
+                }
+
+                // check if the camp is cleared and assign 5 points for clearing the camp
+                if enemies_in_camp.current_enemies == 0 {
+                    for (mut score, pl) in player_score_query.iter_mut() {
+                        if pl.0 == last_attacker.0.expect("camp has no attacker") {
+                            score.current_score += 5;
+                            println!("5 points awarded for clearing a camp")
+                        }
+                    }
+                }
+            }
+
             // despawn the enemy and increment the score of the player who killed it
             commands.entity(entity).despawn_recursive();
             for (mut score, pl) in player_score_query.iter_mut() {
