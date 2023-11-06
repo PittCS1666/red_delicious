@@ -156,7 +156,7 @@ pub fn setup(
             let (fname, cols, rows) = match s {
                 SheetTypes::Camp => ("camptilesheet.png", 50, 1),
                 SheetTypes::Ground => ("groundtilesheet.png", 50, 1),
-                SheetTypes::Wall => ("wall.png", 1, 1),
+                SheetTypes::Wall => ("wall.png", 2, 2),
             };
             let handle = asset_server.load(fname);
             let atlas = 
