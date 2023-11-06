@@ -2,11 +2,10 @@ use std::net::*;
 use std::str::FromStr;
 use bevy::prelude::*;
 use bincode::{deserialize, serialize};
-use crate::{menus, net};
+use crate::{game, menus, net};
 use crate::game::buffers::PosBuffer;
 use crate::game::enemy::EnemyTickEvent;
 use crate::game::player::{LocalPlayer, PlayerTickEvent, UserCmd};
-use crate::net::TickNum;
 
 
 pub fn connect(
@@ -40,7 +39,9 @@ pub fn fixed(
 ) {
     if sock.0.is_none() { return }
     let sock = sock.0.as_mut().unwrap();
-    let pb = pb_query.single();
+    let pb = pb_query.get_single();
+    if pb.is_err() { return }
+    let pb = pb.unwrap();
     let pos = pb.0.get(tick.0);
     let packet = net::Packet {
         protocol: net::MAGIC_NUMBER,
@@ -59,7 +60,8 @@ pub fn update(
     mut sock: ResMut<net::Socket>,
     mut player_writer: EventWriter<PlayerTickEvent>,
     mut enemy_writer: EventWriter<EnemyTickEvent>,
-    mut tick_num: ResMut<TickNum>
+    mut tick_num: ResMut<net::TickNum>,
+    mut res_id: ResMut<game::PlayerId>
 ) {
     if sock.0.is_none() { return }
     let sock = sock.0.as_mut().unwrap();
@@ -77,8 +79,10 @@ pub fn update(
         if packet.protocol != net::MAGIC_NUMBER { continue; }
         match packet.contents {
             net::PacketContents::HostTick {
-                seq_num, players, enemies
+                seq_num, player_id, players, enemies
             } => {
+                res_id.0 = player_id;
+                //TODO this is a problem until we have variable length HostTick packets
                 for (id, tick) in players.iter().enumerate() {
                     player_writer.send(PlayerTickEvent {
                         seq_num,

@@ -19,11 +19,6 @@ impl<T: Default + Copy> CircularBuffer<T> {
         &self.0[i]
     }
 
-    pub fn get_mut(&mut self, tick: u16) -> &mut T {
-        let i = tick as usize % BUFFER_LEN;
-        &mut self.0[i]
-    }
-
     pub fn set(&mut self, tick: u16, input: T) {
         let i = tick as usize % BUFFER_LEN;
         self.0[i] = input;

@@ -51,14 +51,26 @@ pub const MOVE_VECTORS: [Vec2; 16] = [
 ];
 
 /// Player movement function. Runs on Update schedule.
-pub fn move_player(
+pub fn handle_move(
     keyboard_input: Res<Input<KeyCode>>,
-    mut players: Query<(&Player, &mut Transform, &Collider, &StoredPowerUps), With<LocalPlayer>>,
-    other_colliders: Query<(&Transform, &Collider), Without<LocalPlayer>>,
+    mut players: Query<(&Player, &mut Transform, &Health, &Collider, &StoredPowerUps, &PlayerShield), With<LocalPlayer>>,
+    other_colliders: Query<(&Transform, &Collider, &Health), Without<LocalPlayer>>,
     map: Res<map::WorldMap>,
     time: Res<Time>,
     key_binds: Res<KeyBinds>
 ) {
+    // should only be a single entry in this query (with localplayer)
+    let player = players.get_single_mut();
+    if player.is_err() { return; }
+    let player = player.unwrap();
+    let pos = player.1.into_inner();
+    let hp = player.2;
+    let collider = player.3;
+    let spu = player.4;
+    let shield = player.5;
+
+    if hp.dead || shield.active { return }
+
     let mut mv: usize = keyboard_input.pressed(key_binds.up) as usize * 0b0001;
     mv |= keyboard_input.pressed(key_binds.down) as usize * 0b0010;
     mv |= keyboard_input.pressed(key_binds.left) as usize * 0b0100;
@@ -66,21 +78,18 @@ pub fn move_player(
     let dir = MOVE_VECTORS[mv];
     let mut can_move = true;
 
-    // should only be a single entry in this query (with localplayer)
-    let player = players.single_mut();
-    let pos = player.1.into_inner();
-    let collider = player.2;
 
     let mut new_pos = Vec3 {
-        x: pos.translation.x + dir.x * (PLAYER_SPEED + player.3.power_ups[PowerUpType::MovementSpeedUp as usize] as f32 * MOVEMENT_SPEED_UP as f32) * time.delta_seconds(),
-        y: pos.translation.y + dir.y * (PLAYER_SPEED + player.3.power_ups[PowerUpType::MovementSpeedUp as usize] as f32 * MOVEMENT_SPEED_UP as f32) * time.delta_seconds(),
+        x: pos.translation.x + dir.x * (PLAYER_SPEED + spu.power_ups[PowerUpType::MovementSpeedUp as usize] as f32 * MOVEMENT_SPEED_UP as f32) * time.delta_seconds(),
+        y: pos.translation.y + dir.y * (PLAYER_SPEED + spu.power_ups[PowerUpType::MovementSpeedUp as usize] as f32 * MOVEMENT_SPEED_UP as f32) * time.delta_seconds(),
         z: 0.0,
     };
 
     // check collision against entities
     // TODO the player needs to move out of the way of serverside objects, or stay put if it can't
-    for (other_position, other_collider) in other_colliders.iter() {
-        if let Some(collision) = collide(new_pos, collider.0, other_position.translation, other_collider.0) {
+    for (other_position, other_collider, other_health) in other_colliders.iter() {
+        if other_health.dead { continue }
+        if collide(new_pos, collider.0, other_position.translation, other_collider.0).is_some() {
             // TODO this is a temporary "push away" collision resolution.
             //can_move = false;
             new_pos = pos.translation + pos.translation.sub(other_position.translation).clamp_length_max(1.0);
@@ -99,7 +108,7 @@ pub fn move_player(
 
     // Check that we aren't colliding with a wall and move out if we are
     // repeat in case we put ourselves in a wall the first time
-    for i in 0..5 {
+    for _ in 0..5 {
         let mut done = true;
         let half_collider = Vec2::new(collider.0.x / 2.0, collider.0.y / 2.0);
         let player_north = pos.translation + Vec3::new(0.0, half_collider.y, 0.0);

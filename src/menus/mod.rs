@@ -54,6 +54,10 @@ impl Plugin for MainMenuPlugin{
         .add_systems(Update, join_port_but)
         .add_systems(Update, join_ip_but)
         .add_systems(Update, save_join_input)
+        .add_systems(Update, init_host_port_input_system)
+        .add_systems(Update, init_join_host_port_input_system)
+        .add_systems(Update, init_join_port_input_system)
+        .add_systems(Update, init_join_ip_input_system)
         .add_systems(Startup, startup);
 }}
 

@@ -15,7 +15,7 @@ const TICKLEN_S: f32 = 1. / TICKRATE as f32;
 pub const DELAY: u16 = 2;
 pub const MAX_PACKET_LEN: usize = 4096;  // probably should check if this is the size of a HostTick
 pub const MAGIC_NUMBER: u16 = 24835; // 8008135 % 69420
-pub const TIMEOUT: u16 = TICKRATE as u16 * 30;  // 30 seconds to timeout
+pub const TIMEOUT: u16 = TICKRATE as u16 * 10;  // 10 seconds to timeout
 
 #[derive(Resource)]
 pub struct TickNum(pub u16);  // this is the tick we're writing to, NOT playing back
@@ -34,6 +34,7 @@ pub enum PacketContents {
         seq_num: u16,
         //ack: u16,
         //ack_bits: u32,
+        player_id: u8,  // tells the player which player id they have
         players: [player::PlayerTick; player::MAX_PLAYERS],
         enemies: [enemy::EnemyTick; enemy::MAX_ENEMIES],
     },
@@ -60,7 +61,7 @@ impl Plugin for NetPlugin {
         host::startup))  // you cant conditionally run this unless you do a bunch of bullshit
             .add_systems(FixedUpdate,
                          (increment_tick.run_if(is_host),
-                         client::fixed.run_if(is_client).after(player::fixed),
+                         client::fixed.run_if(is_client).after(player::update_buffer),
                          host::fixed.run_if(is_host).after(enemy::fixed_move),
                          lerp::resolve_collisions.run_if(is_host).before(increment_tick)))
             .add_systems(Update,

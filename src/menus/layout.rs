@@ -1152,7 +1152,7 @@ pub fn build_in_game_menu(
             );
 
             // Timer Display
-            let timer_entity = parent.spawn(TextBundle {
+            parent.spawn(TextBundle {
                 style: Style {
                     position_type: PositionType::Absolute,
                     left: Val::Px(SCREEN_WIDTH / 2.0 - 100.0),

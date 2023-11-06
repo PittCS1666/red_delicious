@@ -1,10 +1,10 @@
 use std::net::*;
 use bevy::prelude::*;
 use bincode::{deserialize, serialize};
-use crate::game::{enemy, player};
+use crate::game::{enemy, player, PlayerId};
 use crate::{menus, net};
 use crate::game::buffers::PosBuffer;
-use crate::game::player::{UserCmdEvent};
+use crate::game::player::UserCmdEvent;
 use crate::components::*;
 
 #[derive(Copy, Clone)]
@@ -16,10 +16,10 @@ pub struct Connection {
 }
 
 #[derive(Resource)]
-pub struct Connections(pub [Option<Connection>; player::MAX_PLAYERS]);
+pub struct Connections(pub [Option<Connection>; player::MAX_PLAYERS-1]); // -1 because host not included
 
 pub fn startup(mut commands: Commands) {
-    commands.insert_resource(Connections { 0: [None; player::MAX_PLAYERS] })
+    commands.insert_resource(Connections { 0: [None; player::MAX_PLAYERS-1] });
 }
 
 pub fn connect(addresses: Res<menus::NetworkAddresses>,
@@ -75,17 +75,27 @@ pub fn fixed(
             hp: hp.current
         }
     }
-    let packet = net::Packet {
+    let mut packet = net::Packet {
         protocol: net::MAGIC_NUMBER,
         contents: net::PacketContents::HostTick {
             seq_num: tick.0,
+            player_id: 0,
             players,
             enemies,
         },
     };
-    for conn in &conns.0 {
+    for conn in conns.0.iter() {
         if conn.is_none() { continue; }
         let socket = conn.unwrap().socket;
+        match &mut packet.contents {
+            &mut net::PacketContents::HostTick {
+                    seq_num: _,
+                    ref mut player_id,
+                    players: _,
+                    enemies: _
+                } => *player_id = conn.unwrap().player_id,
+            _ => unreachable!()
+        };
         sock.send_to(serialize(&packet).expect("couldn't serialize").as_slice(), socket).expect("send failed");
     }
 }
@@ -94,7 +104,7 @@ pub fn update(
     mut sock: ResMut<net::Socket>,
     mut conns: ResMut<Connections>,
     tick_num: Res<net::TickNum>,
-    mut usercmd_writer: EventWriter<UserCmdEvent>
+    mut usercmd_writer: EventWriter<UserCmdEvent>,
 ) {
     if sock.0.is_none() { return }
     let sock = sock.0.as_mut().unwrap();
@@ -128,21 +138,30 @@ pub fn update(
                     }
                 }
                 if !found_connection {
+                    let mut unused = [false; player::MAX_PLAYERS - 1];
+                    for conn in &conns.0 {
+                        if let Some(conn) = conn {
+                            unused[conn.player_id as usize] = true;
+                        }
+                    }
+                    let mut fresh_id = 1;
+                    for (i, b) in unused.into_iter().enumerate() {
+                        if i == fresh_id && b {
+                            fresh_id += 1;
+                        }
+                    }
                     for conn in &mut conns.0 {
                         if conn.is_none() {
                             added_connection = true;
                             let _ = conn.insert(Connection {
                                 socket: origin,
-                                player_id: 1,  // TODO this needs to be set for real
+                                player_id: fresh_id as u8,
                                 ack: 0,
                                 ack_bits: 0,
                             });
-                            id = 1;
-                            println!("added connection");
+                            id = fresh_id as u8;
+                            println!("added connection with id {:?}", fresh_id);
                             break;
-                            // TODO add player to gamestate
-                            //   ...actually what if all players are present all the time but some
-                            //   just are ignored and not drawn if hp == 0 for example
                         }
                     }
                 }

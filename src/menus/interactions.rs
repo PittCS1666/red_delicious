@@ -2,6 +2,7 @@ use bevy::prelude::*;
 
 use crate::menus::components::*;
 use crate::AppState;
+use crate::game::PlayerId;
 use crate::menus::NetworkAddresses;
 
 pub fn interact_with_button<B: ButtonTypeTrait>(
@@ -80,11 +81,11 @@ pub fn update_input<T: InputType>(
 
     if let Some(new_char) = new_char {
         for (mut text, mut input_type) in query.iter_mut() {
-            if new_char != '\u{8}' {
+            if new_char != '\u{8}' && new_char != '\u{7f}' {
                 text.sections[0].value.push(new_char);
                 input_type.push_char(new_char);
             }
-            if keyboard_input.just_pressed(KeyCode::Back) {
+            else{
                 if !input_type.is_empty() {
                     text.sections[0].value.pop();
                     input_type.pop_char();
@@ -127,8 +128,10 @@ pub fn update_join_ip_input(
 ) {
     update_input::<JoinIPInput>(char_events, keyboard_input, query, Some(switch_query));
 }
+
 pub fn save_host_input(
     mut is_host: ResMut<crate::net::IsHost>,
+    mut res_id: ResMut<PlayerId>,
     mut net_address: ResMut<NetworkAddresses>,
     host_port_query: Query<&HostPortInput>,
     mut button_query: Query<
@@ -142,9 +145,11 @@ pub fn save_host_input(
             Interaction::Pressed => {
                 for host_port_input in host_port_query.iter() {
                     net_address.host_port = host_port_input.port.clone();
+                    res_id.0 = 0;
+                    println!("setting res_id to {:?}", res_id.0);
                     is_host.0 = true;
                 }
-                app_state_next_state.set(AppState::Game);
+                app_state_next_state.set(AppState::Respawn);
             }
             Interaction::Hovered => {
                 *background_color = Color::GRAY.into();
@@ -255,7 +260,7 @@ pub fn save_join_input(
                     net_address.host_port =join_host_port_input.port.clone();
                 }
                 is_host.0 = false;
-                app_state_next_state.set(AppState::Game);
+                app_state_next_state.set(AppState::Respawn);
             }
             Interaction::Hovered => {
                 *background_color = Color::GRAY.into();
@@ -266,3 +271,51 @@ pub fn save_join_input(
         }
     }
 }
+
+pub fn init_input_system_with_default<T: InputType>(
+    default_value: &str,
+    mut commands: Commands,
+    mut query: Query<(Entity, &mut Text, &mut T), Without<Initialized>>,
+) {
+    for (entity, mut text, mut input) in query.iter_mut() {
+        if input.is_empty() {
+            text.sections[0].value.push_str(&format!(" {}", default_value));
+            for ch in default_value.chars() {
+                input.push_char(ch);
+            }
+            commands.entity(entity).insert(Initialized {});
+        }
+    }
+}
+//adjust the default of each inputs here
+pub fn init_host_port_input_system(
+    commands: Commands,
+    host_port_query: Query<(Entity, &mut Text, &mut HostPortInput), Without<Initialized>>,
+) {
+    init_input_system_with_default::<HostPortInput>("8085", commands, host_port_query);
+}
+
+pub fn init_join_host_port_input_system(
+    commands: Commands,
+    join_host_port_query: Query<(Entity, &mut Text, &mut JoinHostPortInput), Without<Initialized>>,
+) {
+    init_input_system_with_default::<JoinHostPortInput>("8085", commands, join_host_port_query);
+}
+
+pub fn init_join_port_input_system(
+    commands: Commands,
+    join_port_query: Query<(Entity, &mut Text, &mut JoinPortInput), Without<Initialized>>,
+) {
+    init_input_system_with_default::<JoinPortInput>("8086", commands, join_port_query);
+}
+
+pub fn init_join_ip_input_system(
+    commands: Commands,
+    join_ip_query: Query<(Entity, &mut Text, &mut JoinIPInput), Without<Initialized>>,
+) {
+    init_input_system_with_default::<JoinIPInput>("127.0.0.1", commands, join_ip_query);
+}
+
+
+
+
