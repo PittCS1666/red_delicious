@@ -13,7 +13,7 @@ pub fn connect(
     mut sock: ResMut<net::Socket>
 ) {
     // I think if you communicate over LAN, you have to use local ip rather than loopback ip
-    let client_ip = Ipv4Addr::new(127,0,0,1);
+    let client_ip = Ipv4Addr::new(0,0,0,0);
     let client_port = u16::from_str(&addresses.client_port).expect("bad client port");
     let client_addr = SocketAddr::new(IpAddr::from(client_ip), client_port);
     sock.0 = Some(UdpSocket::bind(client_addr).expect("client port in use"));
