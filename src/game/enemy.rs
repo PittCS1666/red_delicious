@@ -52,7 +52,7 @@ impl Plugin for EnemyPlugin{
             .add_systems(Update, (
                 handle_packet.run_if(is_client),
                 update_enemies.after(handle_packet),
-                handle_attack.after(update_enemies),
+                handle_attack.before(update_enemies),
             ))
             .add_systems(OnExit(AppState::Game), remove_enemies);
     }
@@ -126,6 +126,7 @@ pub fn handle_attack(
             let enemy_entity = commands.get_entity(enemy_entity);
             if enemy_entity.is_none() {continue}
             let mut enemy_entity = enemy_entity.unwrap();
+            // TODO if this panics ever again, check if enemy hp is 0 or less and continue; if so
             enemy_entity.add_child(attack);
             for (player_transform, mut player_hp, player_power_ups, shield) in player_query.iter_mut() {
                 if player_transform.translation.distance(enemy_transform.translation) < CIRCLE_RADIUS {
