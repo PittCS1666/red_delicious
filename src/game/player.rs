@@ -10,6 +10,7 @@ use crate::game::PlayerId;
 use crate::net::{is_client, is_host, TICKLEN_S, TickNum};
 use crate::net::packets::{PlayerTickEvent, UserCmdEvent};
 use crate::menus::layout::{toggle_leaderboard, update_leaderboard};
+use bevy::audio::VolumeLevel;
 
 pub const PLAYER_SPEED: f32 = 250.;
 pub const PLAYER_DEFAULT_HP: u8 = 100;
@@ -477,7 +478,7 @@ pub fn attack_draw(
             let cursor_vector = Vec2 { x: dir.cos(), y: dir.sin() };
             commands.spawn(AudioBundle {
                 source: asset_server.load("player-swing.ogg"),
-                ..default()
+                settings: PlaybackSettings { volume: bevy::audio::Volume::Absolute(VolumeLevel::new(0.5)), ..default()}
             });
             commands.entity(e).with_children(|parent| {
                 parent.spawn((
@@ -531,7 +532,7 @@ pub fn attack_simulate(
                 }
                 commands.spawn(AudioBundle {
                     source: asset_server.load("hitHurt.ogg"),
-                    ..default()
+                    settings: PlaybackSettings { volume: bevy::audio::Volume::Absolute(VolumeLevel::new(0.5)), ..default()}
                 });
             }
             for (chest_tf, mut chest_hp) in chest.iter_mut() {
@@ -546,7 +547,7 @@ pub fn attack_simulate(
                     chest_hp.current = 0;
                     commands.spawn(AudioBundle {
                         source: asset_server.load("chest.ogg"),
-                        ..default()
+                        settings: PlaybackSettings { volume: bevy::audio::Volume::Absolute(VolumeLevel::new(0.5)), ..default()}
                     });
                 }
             }
@@ -682,7 +683,7 @@ pub fn health_simulate(
         else if hp.current == 0 && !hp.dead {
             commands.spawn(AudioBundle {
                 source: asset_server.load("dead-2.ogg"),
-                ..default()
+                settings: PlaybackSettings { volume: bevy::audio::Volume::Absolute(VolumeLevel::new(0.5)), ..default()}
             });
             hp.dead = true;
             *vis = Visibility::Hidden;
