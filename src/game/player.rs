@@ -97,7 +97,7 @@ impl Plugin for PlayerPlugin{
             .add_systems(FixedUpdate, (
                 update_buffer.before(attack_host),
                 attack_draw.after(attack_simulate),
-                shield_draw,
+                shield_draw.after(shield_input),
                 health_simulate.after(spawn_simulate),
                 health_draw.after(health_simulate),
                 ).run_if(in_state(AppState::Game)).before(net::client::fixed).before(net::host::fixed))
