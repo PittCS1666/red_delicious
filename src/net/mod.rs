@@ -95,7 +95,18 @@ pub fn increment_tick(
     }
     for mut eb in &mut event_buffers {
         if eb.0.get(tick.0).is_none() {
-            eb.0.set(tick.0, Some(0));
+            let mut prev = None;
+            let mut latest_date: u16 = 0;
+            for i in 0..(BUFFER_LEN/2) {
+                if eb.0.get(tick.0.saturating_sub(i as u16)).is_some() {
+                    let (p, d) = eb.0.get_both(tick.0.saturating_sub(i as u16));
+                    if d > latest_date {
+                        latest_date = d;
+                        prev = p.clone();
+                    }
+                }
+            }
+            eb.0.set_with_time(tick.0, prev, latest_date);
         }
         eb.0.set(tick.0 + 1, None);
     }
