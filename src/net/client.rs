@@ -154,8 +154,8 @@ pub fn update(
                     }
                 }
                 if packet.seq_num > tick_num.0 {
-                    println!("re-syncing: changing tick from {} to {}", tick_num.0, packet.seq_num);
-                    tick_num.0 = packet.seq_num;
+                    println!("re-syncing: changing tick from {} to {}", tick_num.0, packet.seq_num + 1);
+                    tick_num.0 = packet.seq_num + 1;
                 }
             },
             pt if pt == PacketType::ServerFull as u8 => {
