@@ -519,7 +519,7 @@ pub fn init_join_ip_input_system(
     commands: Commands,
     join_ip_query: Query<(Entity, &mut Text, &mut JoinIPInput), Without<Initialized>>,
 ) {
-    init_input_system_with_default::<JoinIPInput>("127.0.0.1", commands, join_ip_query);
+    init_input_system_with_default::<JoinIPInput>("10.4.43.37", commands, join_ip_query);
 }
 
 pub fn init_num_camps_input_system(
