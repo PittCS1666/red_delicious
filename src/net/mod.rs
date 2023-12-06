@@ -11,6 +11,7 @@ use packets::{PlayerTickEvent, EnemyTickEvent, UserCmdEvent};
 use crate::game::buffers::{BUFFER_LEN, DirBuffer, EventBuffer, HpBuffer, PosBuffer};
 use crate::game::components::Player;
 use crate::game::player;
+use crate::game::player::SPAWN_BITFLAG;
 
 
 pub const TICKRATE: u8 = 10;
@@ -102,7 +103,8 @@ pub fn increment_tick(
                     let (p, d) = eb.0.get_both(tick.0.saturating_sub(i as u16));
                     if d > latest_date {
                         latest_date = d;
-                        prev = p.clone();
+                        let s = p.unwrap();
+                        prev = Some(s & !SPAWN_BITFLAG);
                     }
                 }
             }
